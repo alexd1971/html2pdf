@@ -6,32 +6,47 @@ const pug = require('pug');
 
 const app = express();
 app.use(bodyParser.json());
+
+const PUG = 'pug';
+const HTML = 'html';
+const URL = 'url';
+const allowedDoctypes = [HTML, PUG, URL];
+
 app.post('/', (req, res) => {
 
-  const options = {
-    host: config.chrome.host,
-    port: config.chrome.port,
-  };
-
-  if(req.body.printOptions) {
-    options.printOptions = req.body.printOptions;
+  if (!(req.body.doctype && allowedDoctypes.includes(req.body.doctype.toLowerCase()))) {
+    return res.status(400).send('Unknown doctype');
   }
   if(!req.body.document) {
     return res.status(400).send('No document');
   }
-  if(!req.body.vars) {
-    return res.status(400).send('No template vars');
+  
+  const options = {
+    host: config.chrome.host,
+    port: config.chrome.port,
+  };
+  if(req.body.printOptions) {
+    options.printOptions = req.body.printOptions;
   }
-  var html;
+
+  var doc;
   try {
-    html = pug.renderFile('templates/' + req.body.document + '/index.pug', req.body.vars);
-    htmlPdf.create(html, options).then((pdf) => {
+    switch (req.body.doctype.toLowerCase()) {
+      case HTML:
+      case URL:
+        doc = req.body.document;
+        break;
+      case PUG:
+        doc = pug.renderFile('templates/' + req.body.document + '/index.pug', req.body.vars);
+        break;
+    }
+    htmlPdf.create(doc, options).then((pdf) => {
       res.contentType('application/pdf');
       res.end(pdf.toBuffer(), 'binary');
     }).catch((e) => {
       res.status(500).send(e);
     });
-  } catch(e) {
+  } catch (e) {
     if (e.code == 'ENOENT') {
       return res.status(500).send('File not found: ' + e.path);
     }

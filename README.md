@@ -1,8 +1,14 @@
 # Сервис генерации pdf-документов
 
+Сервис генерирует pdf-документы на основе html-документа, полученного одним из следующих способов:
+
+* непосредственно текст html-документа
+* полный URL html-документа
+* pug-шаблон, на основе которого генерируется html-документ
+
 ## Запуск сервиса
 
-Для своей работы сервис использует браузер Chrome, запущенный в headless режиме. Для запуска Chrome можно воспользоваться, например, docker-образом [ttonyh/chrome-headless-stable](https://hub.docker.com/r/ttonyh/chrome-headless-stable)
+Для своей работы сервис использует браузер Chrome, запущенный в headless режиме. Для запуска Chrome можно воспользоваться, например, [docker-образом](https://hub.docker.com/r/ttonyh/chrome-headless-stable)
 
 Для запуска сервиса в автономном режиме проще всего использовать docker-compose.
 
@@ -36,9 +42,9 @@ networks:
 
 ## Шаблоны
 
-Наданный момент допускаются только шаблоны в формате шаблонизатора [pug](https://pugjs.org).
+На данный момент допускаются только шаблоны в формате шаблонизатора [pug](https://pugjs.org).
 
-Сами шаблоны необходимо размещить в каталоге `templates`, выделяя для шаблона каждого документа отделный каталог. Главный файл шаблона должен иметь имя index.pug. Имя документа для генерации pdf-файла определяется именем каталога с файлом index.pug. Включаемые части шаблона могут разполагаться как внутри каталога с шаблоном, так и вне его, например, в отдельном каталоге для включаемых файлов.
+Сами шаблоны необходимо размещить в каталоге `templates`, выделяя для шаблона каждого документа отделный каталог. Главный файл шаблона должен иметь имя index.pug. Имя документа для генерации pdf-файла определяется именем каталога с файлом index.pug.
 
 Поскольку шаблон документа читается непосредственно перед генерацией pdf-документа, шаблоны можно закгружать в каталог шаблонов как вручную, так и посредством внешнего приложения без необходимости перезапуска сервиса.
 
@@ -51,6 +57,7 @@ Content-Type: application/json
 ```
 ```json
 {
+  "doctype": "pug",
   "document": "document_name",
   "vars": {
     "title": "Заголовок документа",
@@ -62,9 +69,20 @@ Content-Type: application/json
   }
 }
 ```
+`doctype` (обязательный параметр) - тип документа. Возможны варианты:
 
-`document` - имя катлога шаблона с файлом `index.pug` (обязательный параметр)
+* `'html'` - html-документ,
+* `'pug'` - документ-шаблон для шаблонизатора pug (шаблон заранее должен быть размещен в каталоге с шаблонами),
+* `'url'` - URL HTML-документа
+  
+`document` (обязательный параметр):
+
+* для типа документа `html`  содержит текст html
+* для типа документа `pug` содержит имя катлога шаблона с файлом `index.pug`
+* для типа документа `url`  содержит полный URL html-документа
+
 `vars` - значения переменных шаблона (не обязательно)
+
 `printOptions` - парамтеры печати (не обязательно)
 
 Допустимые `printOptions`:
@@ -90,6 +108,80 @@ Content-Type: application/json
 * `url` (размещение документа)
 * `pageNumber` (номаер текущей страницы)
 * `totalPages` (всего страниц)
+
+Так же нужно учитывать, что к шаблонам `headerTemplate` и `footerTemplate` применяются следующие стили:
+
+```css
+<style>
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #header, #footer {
+    display: flex;
+    flex: none;
+  }
+
+  #header {
+    align-items: flex-start;
+    padding-top: 0.4cm;
+  }
+
+  #footer {
+    align-items: flex-end;
+    padding-bottom: 0.4cm;
+  }
+
+  #content {
+    flex: auto;
+  }
+
+  .left {
+    flex: none;
+    padding-left: 0.7cm;
+    padding-right: 0.1cm;
+  }
+
+  .center {
+    flex: auto;
+    padding-left: 0.7cm;
+    padding-right: 0.7cm;
+    text-align: center;
+  }
+
+  .right {
+    flex: none;
+    /* historically does not account for RTL */
+    padding-left: 0.1cm;
+    padding-right: 0.7cm;
+  }
+
+  .grow {
+    flex: auto;
+  }
+
+  .text {
+    font-size: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
+```
+
+При этом то, что прописано в `headerTemplate` автоматически оборачивается в
+
+```html
+<div id="header">...</div>
+```
+
+Аналогино то, что прописано в `footerTemplate` автоматически оборачивается в
+
+```html
+<div id="footer">...</div>
+```
 
 Пример шаблона:
 
