@@ -15,24 +15,24 @@
 docker-compose.yml:
 ```yaml
 version: "3"
-services: 
+services:
   chrome:
-    image: ttonyh/chrome-headless-stable
+    image: yukinying/chrome-headless
     container_name: chrome
     networks:
       - net
   html2pdf:
     image: alexd1971/html2pdf
     container_name: html2pdf
-    depends_on: 
+    depends_on:
       - chrome
-    networks: 
+    networks:
       - net
     ports:
       - 7777:7777
     volumes:
       - ./config.json:/app/config.json
-      - ./path/to/templates:/app/templates
+      - /path/to/templates:/app/templates
 networks:
   net:
     driver: bridge
