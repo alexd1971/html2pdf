@@ -47,6 +47,9 @@ app.post('/', (req, res) => {
       res.status(500).send(e);
     });
   } catch (e) {
+    if (e.name == 'SyntaxError') {
+      return res.status(500).send('Syntax Error: ' + e.message);
+    }
     if (e.code == 'ENOENT') {
       return res.status(500).send('File not found: ' + e.path);
     }
